@@ -8,21 +8,6 @@ import HyprMX
 
 final class HyprMXAdapter: PartnerAdapter {
 
-    private static let USERID_STORAGE_KEY = "hyprMarketplaceUserId"
-
-    var userId: String {
-        get {
-            if let storedUserId = UserDefaults.standard.object(forKey: USERID_STORAGE_KEY) as? String {
-                return storedUserId
-            }
-        }
-        set {
-            UserDefaults.standard.set(userId, forKey: newValue)
-        }
-    }
-
-    // MARK: PartnerAdapter
-
     /// The version of the partner SDK.
     let partnerSDKVersion = "6.0.3"
 
@@ -41,8 +26,14 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter configuration: Configuration data for the adapter to set up.
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
+        guard let userId = HyperMXAdapterConfiguration.userId else {
+            completion(ChartboostMediationError(code: .initializationFailureInvalidCredentials,
+                                                description: "HyprMX reqiures a permanent userId to initialize their SDK"))
+            return
+        }
+
         HyprMX.initialize(withDistributorId: "distributorId",
-                          userId: "userId",
+                          userId: userId,
                           consentStatus: CONSENT_STATUS_UNKNOWN, // If you don't have consent status for the user, set this to CONSENT_STATUS_UNKNOWN
                           initializationDelegate: self)
     }
