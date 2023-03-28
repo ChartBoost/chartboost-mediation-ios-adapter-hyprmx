@@ -8,6 +8,14 @@ import HyprMX
 
 final class HyprMXAdapter: PartnerAdapter {
 
+    private let DISTRIBUTOR_ID_KEY = "distributor_id"
+    // We track "has opted out" instead of "has opted in" because it makes the
+    // three-valued (true, false, nil) truth table easier to read
+    private var gdprOptOut: Bool? = nil
+    private var ccpaOptOut: Bool? = nil
+
+    // MARK: PartnerAdapter
+
     /// The version of the partner SDK.
     let partnerSDKVersion = "6.0.3"
 
@@ -26,15 +34,23 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter configuration: Configuration data for the adapter to set up.
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
+        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
+            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
+                                                 description: "The distributor id was invalid")
+            log(.setUpFailed(error))
+            completion(error)
+            return
+        }
         guard let userId = HyperMXAdapterConfiguration.userId else {
-            completion(ChartboostMediationError(code: .initializationFailureInvalidCredentials,
-                                                description: "HyprMX reqiures a permanent userId to initialize their SDK"))
+            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
+                                                 description: "HyprMX reqiures a permanent userId to initialize their SDK")
+            log(.setUpFailed(error))
+            completion(error)
             return
         }
 
-        HyprMX.initialize(withDistributorId: "distributorId",
+        HyprMX.initialize(withDistributorId: distributorId,
                           userId: userId,
-                          consentStatus: CONSENT_STATUS_UNKNOWN, // If you don't have consent status for the user, set this to CONSENT_STATUS_UNKNOWN
                           initializationDelegate: self)
     }
 
@@ -50,20 +66,35 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter applies: `true` if GDPR applies, `false` if not, `nil` if the publisher has not provided this information.
     /// - parameter status: One of the `GDPRConsentStatus` values depending on the user's preference.
     func setGDPR(applies: Bool?, status: GDPRConsentStatus) {
-        // TODO:
+        if applies == true {
+            switch status {
+            case .granted:
+                gdprOptOut = false
+            case .denied:
+                gdprOptOut = true
+            case .unknown:
+                gdprOptOut = nil
+            }
+        } else {
+            // In the case of either a false or nil value of 'applies', we set gdprOptOut
+            // to nil, because the GDPR status should not be taken into consideration
+            gdprOptOut = nil
+        }
+        updateConsentState()
     }
 
     /// Indicates the CCPA status both as a boolean and as an IAB US privacy string.
     /// - parameter hasGivenConsent: A boolean indicating if the user has given consent.
     /// - parameter privacyString: An IAB-compliant string indicating the CCPA status.
     func setCCPA(hasGivenConsent: Bool, privacyString: String) {
-        // TODO:
+        // We invert "has given consent" to "NOT has opted out" because the HyprConsent
+        ccpaOptOut = !hasGivenConsent
+        updateConsentState()
     }
 
     /// Indicates if the user is subject to COPPA or not.
     /// - parameter isChildDirected: `true` if the user is subject to COPPA, `false` otherwise.
     func setCOPPA(isChildDirected: Bool) {
-        // TODO:
     }
 
     /// Creates a new ad object in charge of communicating with a single partner SDK ad instance.
@@ -84,51 +115,29 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter storage: An object that exposes storage managed by the Chartboost Mediation SDK to the adapter.
     /// It includes a list of created `PartnerAd` instances. You may ignore this parameter if you don't need it.
     init(storage: PartnerAdapterStorage) {
-        // TODO:
     }
-//
-//    // MARK: Optional
-//
-//    /// Maps a partner setup error to a Chartboost Mediation error code.
-//    /// Chartboost Mediation SDK calls this method when a setup completion is called with a partner error.
-//    ///
-//    /// A default implementation is provided that returns `nil`.
-//    /// Only implement if the partner SDK provides its own list of error codes that can be mapped to Chartboost Mediation's.
-//    /// If some case cannot be mapped return `nil` to let Chartboost Mediation choose a default error code.
-//    func mapSetUpError(_ error: Error) -> ChartboostMediationError.Code?
-//
-//    /// Maps a partner prebid error to a Chartboost Mediation error code.
-//    /// Chartboost Mediation SDK calls this method when a fetch bidder info completion is called with a partner error.
-//    ///
-//    /// A default implementation is provided that returns `nil`.
-//    /// Only implement if the partner SDK provides its own list of error codes that can be mapped to Chartboost Mediation's.
-//    /// If some case cannot be mapped return `nil` to let Chartboost Mediation choose a default error code.
-//    func mapPrebidError(_ error: Error) -> ChartboostMediationError.Code?
-//
-//    /// Maps a partner load error to a Chartboost Mediation error code.
-//    /// Chartboost Mediation SDK calls this method when a load completion is called with a partner error.
-//    ///
-//    /// A default implementation is provided that returns `nil`.
-//    /// Only implement if the partner SDK provides its own list of error codes that can be mapped to Chartboost Mediation's.
-//    /// If some case cannot be mapped return `nil` to let Chartboost Mediation choose a default error code.
-//    func mapLoadError(_ error: Error) -> ChartboostMediationError.Code?
-//
-//    /// Maps a partner show error to a Chartboost Mediation error code.
-//    /// Chartboost Mediation SDK calls this method when a show completion is called with a partner error.
-//    ///
-//    /// A default implementation is provided that returns `nil`.
-//    /// Only implement if the partner SDK provides its own list of error codes that can be mapped to Chartboost Mediation's.
-//    /// If some case cannot be mapped return `nil` to let Chartboost Mediation choose a default error code.
-//    func mapShowError(_ error: Error) -> ChartboostMediationError.Code?
-//
-//    /// Maps a partner invalidate error to a Chartboost Mediation error code.
-//    /// Chartboost Mediation SDK calls this method when a partner error is thrown on invalidate.
-//    ///
-//    /// A default implementation is provided that returns `nil`.
-//    /// Only implement if the partner SDK provides its own list of error codes that can be mapped to Chartboost Mediation's.
-//    /// If some case cannot be mapped return `nil` to let Chartboost Mediation choose a default error code.
-//    func mapInvalidateError(_ error: Error) -> ChartboostMediationError.Code?
 
+    /// HyprMX distills all privacy preferences into a single HyprConsentStatus value, so the we have to look at both the
+    /// GDPR and CCPA settings whenever we receive an update.
+    func determineConsentState() -> HyprConsentStatus {
+        if gdprOptOut == true || ccpaOptOut == true {
+            return CONSENT_DECLINED
+        } else if gdprOptOut == false && ccpaOptOut != true {
+            return CONSENT_GIVEN
+        } else if gdprOptOut != true && ccpaOptOut == false {
+            // At this point, the only gdprOptOut value we're still looking for is nil,
+            // but the symmetry of the logic with the previous if-condition is clearer this way
+            return CONSENT_GIVEN
+        } else {
+            return CONSENT_STATUS_UNKNOWN
+        }
+    }
+
+    private func updateConsentState() {
+        // To make unit testing possible, the consent state logic was broken out into a function
+        // that returns a value. All updateConsentState needs to do is send that value to HyprMX
+        HyprMX.setConsentStatus(determineConsentState())
+    }
 }
 
 extension HyprMXAdapter: HyprMXInitializationDelegate {

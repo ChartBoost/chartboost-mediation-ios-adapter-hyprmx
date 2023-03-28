@@ -8,6 +8,6 @@ import Foundation
 /// A list of externally configurable properties pertaining to the partner SDK that can be retrieved and set by publishers.
 @objc public class HyperMXAdapterConfiguration: NSObject {
 
-    // HyprMX requires publishers to provide a unique user identifier
+    /// HyprMX requires publishers to provide a unique user identifier
     @objc public static var userId: String? = nil
 }
