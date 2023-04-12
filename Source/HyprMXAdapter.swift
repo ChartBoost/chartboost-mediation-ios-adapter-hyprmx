@@ -14,6 +14,8 @@ final class HyprMXAdapter: PartnerAdapter {
     private var gdprOptOut: Bool? = nil
     private var ccpaOptOut: Bool? = nil
 
+    private var initializationCompletion: ((Error?) -> Void)?
+
     // MARK: PartnerAdapter
 
     /// The version of the partner SDK.
@@ -34,24 +36,30 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter configuration: Configuration data for the adapter to set up.
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
-        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
-            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
-                                                 description: "The distributor id was invalid")
-            log(.setUpFailed(error))
-            completion(error)
-            return
-        }
+        initializationCompletion = completion
+         let distributorId = "11000124103" // Usefull for testing until dashboard placements are working
+//        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
+//            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
+//                                                 description: "The distributor id was invalid")
+//            log(.setUpFailed(error))
+//            completion(error)
+//            return
+//        }
         guard let userId = HyperMXAdapterConfiguration.userId else {
             let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
                                                  description: "HyprMX reqiures a permanent userId to initialize their SDK")
             log(.setUpFailed(error))
             completion(error)
+            initializationCompletion = nil
             return
         }
 
-        HyprMX.initialize(withDistributorId: distributorId,
-                          userId: userId,
-                          initializationDelegate: self)
+        // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
+        DispatchQueue.main.async { [self] in
+            HyprMX.initialize(withDistributorId: distributorId,
+                              userId: userId,
+                              initializationDelegate: self)
+        }
     }
 
     /// Fetches bidding tokens needed for the partner to participate in an auction.
@@ -106,8 +114,16 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter request: Information about the ad load request.
     /// - parameter delegate: The delegate that will receive ad life-cycle notifications.
     func makeAd(request: PartnerAdLoadRequest, delegate: PartnerAdDelegate) throws -> PartnerAd {
-        // TODO:
-        throw error(.loadFailureUnsupportedAdFormat)
+        switch request.format {
+        case .banner:
+            return HyprMXAdapterBannerAd(adapter: self, request: request, delegate: delegate)
+        case .interstitial:
+            return HyprMXAdapterInterstitialAd(adapter: self, request: request, delegate: delegate)
+        case .rewarded:
+            return HyprMXAdapterRewardedAd(adapter: self, request: request, delegate: delegate)
+        @unknown default:
+            throw error(.loadFailureUnsupportedAdFormat)
+        }
     }
 
     /// The designated initializer for the adapter.
@@ -136,16 +152,25 @@ final class HyprMXAdapter: PartnerAdapter {
     private func updateConsentState() {
         // To make unit testing possible, the consent state logic was broken out into a function
         // that returns a value. All updateConsentState needs to do is send that value to HyprMX
-        HyprMX.setConsentStatus(determineConsentState())
+
+        // HyprMX only supports interaction from the Main Thread
+        DispatchQueue.main.async { [self] in
+            HyprMX.setConsentStatus(determineConsentState())
+        }
     }
 }
 
 extension HyprMXAdapter: HyprMXInitializationDelegate {
     func initializationDidComplete() {
         log(.setUpSucceded)
+        initializationCompletion?(nil)
+        initializationCompletion = nil
     }
 
     func initializationFailed() {
-        log(.setUpFailed(ChartboostMediationError(code: .initializationFailureUnknown)))
+        let error = ChartboostMediationError(code: .initializationFailureUnknown)
+        log(.setUpFailed(error))
+        initializationCompletion?(error)
+        initializationCompletion = nil
     }
 }

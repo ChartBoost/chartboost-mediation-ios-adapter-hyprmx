@@ -9,29 +9,27 @@ import HyprMX
 
 /// The Chartboost Mediation HyprMX adapter banner ad.
 final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
-
-    /// The HyprMXSDK ad instance.
-//    var ad: HyprMXPlacement?
-    var ad: HyprMXBannerView?
-
     /// Loads an ad.
     /// - parameter viewController: The view controller on which the ad will be presented on. Needed on load for some banners.
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.loadStarted)
-        self.loadCompletion = completion
+        loadCompletion = completion
 
-        // TODO: Validate ad size? https://documentation.hyprmx.com/ios-hyprmx-sdk/banner-ads
-        guard let size = self.request.size else {
+        guard let size = request.size else {
             let loadError = ChartboostMediationError(code: .loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
             completion(.failure(loadError))
+            loadCompletion = nil
             return
         }
 
-        ad = HyprMXBannerView.init(placementName: self.request.partnerPlacement, adSize: size)
-
-        // TODO: *show* the banner ad
+        // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
+//        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
+        let ad = HyprMXBannerView.init(placementName: "banner_320_50", adSize: size) // Usefull for testing until dashboard placements are working
+        inlineView = ad
+        ad.placementDelegate = self
+        ad.loadAd()
     }
 
     /// Shows a loaded ad.
@@ -44,41 +42,40 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
 
 }
 
-extension HyprMXAdapterBannerAd: HyprMXPlacementDelegate {
-    // Called in response to loadAd when there is an ad to show.
-    func adAvailable(for placement: HyprMXPlacement) {
-        log(PartnerAdLogEvent.loadSucceeded)
-        self.loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
+/// These delegate method  descriptions are taken from HyprMX's documentation https://documentation.hyprmx.com/ios-hyprmx-sdk/banner-ads
+/// Note the ambiguity between the name 'adDidOpen' and the description saying "... WILL open a full-screen modal"
+extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
+    // Called in response to loadAd when an ad was loaded
+    func adDidLoad(_ bannerView: HyprMXBannerView) {
+        log(.loadSucceeded)
+        loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
+        loadCompletion = nil
     }
 
-    // Called in response to loadAd when there's no ad to show.
-    func adNotAvailable(for placement: HyprMXPlacement) {
-        let loadError = ChartboostMediationError(code: .loadFailureUnknown)
-        log(.loadFailed(loadError))
-        self.loadCompletion?(.failure(loadError)) ?? log(.loadResultIgnored)
+    // Called in response to loadAd when there was an error loading an ad
+    func adFailed(toLoad bannerView: HyprMXBannerView, error: Error) {
+        log(.loadFailed(error))
+        loadCompletion?(.failure(error)) ?? log(.loadResultIgnored)
+        loadCompletion = nil
     }
 
-    // Called when ad loaded is no longer available for this placement.
-    func adExpired(for placement: HyprMXPlacement) {
-        log(.didExpire)
-        self.delegate?.didExpire(self, details: [:]) ?? self.log(.delegateUnavailable)
-    }
-
-    // Called upon conclusion of any ad presentation attempt
-    func adDidClose(for placement: HyprMXPlacement, didFinishAd finished: Bool) {
-        log(.didDismiss(error: nil))
-        let details = ["finished": String(finished)]
-        self.delegate?.didDismiss(self, details: details, error: nil)  ?? self.log(.delegateUnavailable)
-    }
-
-    // Called immediately before attempting to present an ad.
-    func adWillStart(for placement: HyprMXPlacement) {
+    // Called when a banner click will open a full-screen modal
+    func adDidOpen(_ bannerView: HyprMXBannerView) {
         log(.showSucceeded)
-        showCompletion?(.success([:])) ?? log(.showResultIgnored)
     }
 
-    // Called when an error occurs during ad presentation.
-    func adDisplayError(_ error: Error, placement: HyprMXPlacement) {
-        log(.showFailed(error))
+    // Called when a full-screen modal has been closed
+    func adDidClose(_ bannerView: HyprMXBannerView) {
+        log(.delegateCallIgnored)
+    }
+
+    // Called when the user clicks on the bannerView
+    func adWasClicked(_ bannerView: HyprMXBannerView) {
+        log(.didClick(error: nil))
+    }
+
+    // Called when a banner click will open another application
+    func adWillLeaveApplication(_ bannerView: HyprMXBannerView) {
+        log(.delegateCallIgnored)
     }
 }

@@ -18,17 +18,22 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.loadStarted)
-        self.loadCompletion = completion
+        loadCompletion = completion
 
-        /// Construct a partner ad to be persisted for subsequent ad operations.
-        if let ad = HyprMX.getPlacement("INTERSTITIAL") {
-            self.ad = ad
-            ad.placementDelegate = self
-            ad.loadAd()
-        } else {
-            let loadError = ChartboostMediationError(code: .loadFailureUnknown)
-            log(.loadFailed(loadError))
-            completion(.failure(loadError))
+        // HyprMX only supports interaction from the Main Thread
+        DispatchQueue.main.async { [self] in
+            // Construct a partner ad to be persisted for subsequent ad operations.
+            if let ad = HyprMX.getPlacement("Vast") { // Usefull for testing until dashboard placements are working
+//            if let ad = HyprMX.getPlacement(self.request.partnerIdentifier) {
+                self.ad = ad
+                ad.placementDelegate = self
+                ad.loadAd()
+            } else {
+                let loadError = ChartboostMediationError(code: .loadFailureUnknown)
+                log(.loadFailed(loadError))
+                completion(.failure(loadError))
+                loadCompletion = nil
+            }
         }
     }
 
@@ -38,7 +43,7 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been shown.
     func show(with viewController: UIViewController, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.showStarted)
-
+        // Chartboost Mediation SDK already calls show() on the main thread so we don't need to wrap this
         guard let ad = ad,
               ad.isAdAvailable() else {
             let error = error(.showFailureAdNotReady)
@@ -55,37 +60,43 @@ extension HyprMXAdapterInterstitialAd: HyprMXPlacementDelegate {
     // Called in response to loadAd when there is an ad to show.
     func adAvailable(for placement: HyprMXPlacement) {
         log(PartnerAdLogEvent.loadSucceeded)
-        self.loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
+        loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
+        loadCompletion = nil
     }
 
     // Called in response to loadAd when there's no ad to show.
     func adNotAvailable(for placement: HyprMXPlacement) {
-        let loadError = ChartboostMediationError(code: .loadFailureUnknown)
+        let loadError = ChartboostMediationError(code: .loadFailureNoFill)
         log(.loadFailed(loadError))
-        self.loadCompletion?(.failure(loadError)) ?? log(.loadResultIgnored)
+        loadCompletion?(.failure(loadError)) ?? log(.loadResultIgnored)
+        loadCompletion = nil
     }
 
     // Called when ad loaded is no longer available for this placement.
     func adExpired(for placement: HyprMXPlacement) {
         log(.didExpire)
-        self.delegate?.didExpire(self, details: [:]) ?? self.log(.delegateUnavailable)
+        delegate?.didExpire(self, details: [:]) ?? self.log(.delegateUnavailable)
     }
 
     // Called upon conclusion of any ad presentation attempt
     func adDidClose(for placement: HyprMXPlacement, didFinishAd finished: Bool) {
         log(.didDismiss(error: nil))
         let details = ["finished": String(finished)]
-        self.delegate?.didDismiss(self, details: details, error: nil)  ?? self.log(.delegateUnavailable)
+        delegate?.didDismiss(self, details: details, error: nil)  ?? self.log(.delegateUnavailable)
     }
 
     // Called immediately before attempting to present an ad.
     func adWillStart(for placement: HyprMXPlacement) {
         log(.showSucceeded)
         showCompletion?(.success([:])) ?? log(.showResultIgnored)
+        showCompletion = nil
     }
 
     // Called when an error occurs during ad presentation.
     func adDisplayError(_ error: Error, placement: HyprMXPlacement) {
-        log(.showFailed(error))
+        let cbError = ChartboostMediationError(code: .showFailureUnknown, description: error.localizedDescription)
+        log(.showFailed(cbError))
+        showCompletion?(.failure(cbError)) ?? log(.showResultIgnored)
+        showCompletion = nil
     }
 }
