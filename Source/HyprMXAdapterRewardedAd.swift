@@ -23,7 +23,7 @@ final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerAd {
         // HyprMX only supports interaction from the Main Thread
         DispatchQueue.main.async { [self] in
             // Construct a partner ad to be persisted for subsequent ad operations.
-            if let ad = HyprMX.getPlacement(self.request.partnerIdentifier) {
+            if let ad = HyprMX.getPlacement(self.request.partnerPlacement) {
                 self.ad = ad
                 ad.placementDelegate = self
                 ad.loadAd()

@@ -25,8 +25,7 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
         }
 
         // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
-//        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
-        let ad = HyprMXBannerView.init(placementName: "banner_320_50", adSize: size) // Usefull for testing until dashboard placements are working
+        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
         inlineView = ad
         ad.placementDelegate = self
         ad.loadAd()

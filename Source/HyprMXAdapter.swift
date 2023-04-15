@@ -37,14 +37,13 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
         initializationCompletion = completion
-         let distributorId = "11000124103" // Usefull for testing until dashboard placements are working
-//        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
-//            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
-//                                                 description: "The distributor id was invalid")
-//            log(.setUpFailed(error))
-//            completion(error)
-//            return
-//        }
+        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
+            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
+                                                 description: "The distributor id was invalid")
+            log(.setUpFailed(error))
+            completion(error)
+            return
+        }
         guard let userId = HyperMXAdapterConfiguration.userId else {
             let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
                                                  description: "HyprMX reqiures a permanent userId to initialize their SDK")
