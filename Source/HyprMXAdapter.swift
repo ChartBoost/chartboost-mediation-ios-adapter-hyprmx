@@ -42,6 +42,7 @@ final class HyprMXAdapter: PartnerAdapter {
                                                  description: "The distributor id was invalid")
             log(.setUpFailed(error))
             completion(error)
+            initializationCompletion = nil
             return
         }
         guard let userId = HyperMXAdapterConfiguration.userId else {
@@ -66,7 +67,6 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter completion: Closure to be performed with the fetched info.
     func fetchBidderInformation( request: PreBidRequest, completion: @escaping ([String: String]?) -> Void ) {
         // HyprMX does not use a bidding token
-        completion(nil)
     }
 
     /// Indicates if GDPR applies or not and the user's GDPR consent status.

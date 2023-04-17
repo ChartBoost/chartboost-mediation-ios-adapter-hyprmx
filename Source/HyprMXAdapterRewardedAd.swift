@@ -42,6 +42,7 @@ final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been shown.
     func show(with viewController: UIViewController, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.showStarted)
+        showCompletion = completion
         // Chartboost Mediation SDK already calls show() on the main thread so we don't need to wrap this
         guard let ad = ad,
               ad.isAdAvailable() else {
@@ -75,14 +76,15 @@ extension HyprMXAdapterRewardedAd: HyprMXPlacementDelegate {
     // Called when ad loaded is no longer available for this placement.
     func adExpired(for placement: HyprMXPlacement) {
         log(.didExpire)
-        delegate?.didExpire(self, details: [:]) ?? self.log(.delegateUnavailable)
+        delegate?.didExpire(self, details: [:]) ?? log(.delegateUnavailable)
+        showCompletion = nil
     }
 
     // Called upon conclusion of any ad presentation attempt
     func adDidClose(for placement: HyprMXPlacement, didFinishAd finished: Bool) {
         log(.didDismiss(error: nil))
         let details = ["finished": String(finished)]
-        delegate?.didDismiss(self, details: details, error: nil)  ?? self.log(.delegateUnavailable)
+        delegate?.didDismiss(self, details: details, error: nil)  ?? log(.delegateUnavailable)
     }
 
     // Called when user has earned a reward.
@@ -92,7 +94,7 @@ extension HyprMXAdapterRewardedAd: HyprMXPlacementDelegate {
         // Attempt to add "rewardName" key. Nothing will happen if rewardName is nil.
         details["rewardName"] = rewardName
         details["rewardValue"] = String(rewardValue)
-        delegate?.didReward(self, details: details) ?? self.log(.delegateUnavailable)
+        delegate?.didReward(self, details: details) ?? log(.delegateUnavailable)
     }
 
     // Called immediately before attempting to present an ad.

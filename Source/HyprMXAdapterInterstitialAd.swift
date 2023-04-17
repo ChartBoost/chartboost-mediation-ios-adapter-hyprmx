@@ -42,12 +42,14 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been shown.
     func show(with viewController: UIViewController, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.showStarted)
+        showCompletion = completion
         // Chartboost Mediation SDK already calls show() on the main thread so we don't need to wrap this
         guard let ad = ad,
               ad.isAdAvailable() else {
             let error = error(.showFailureAdNotReady)
             log(.showFailed(error))
             completion(.failure(error))
+            showCompletion = nil
             return
         }
 
@@ -74,14 +76,15 @@ extension HyprMXAdapterInterstitialAd: HyprMXPlacementDelegate {
     // Called when ad loaded is no longer available for this placement.
     func adExpired(for placement: HyprMXPlacement) {
         log(.didExpire)
-        delegate?.didExpire(self, details: [:]) ?? self.log(.delegateUnavailable)
+        delegate?.didExpire(self, details: [:]) ?? log(.delegateUnavailable)
+        showCompletion = nil
     }
 
     // Called upon conclusion of any ad presentation attempt
     func adDidClose(for placement: HyprMXPlacement, didFinishAd finished: Bool) {
         log(.didDismiss(error: nil))
         let details = ["finished": String(finished)]
-        delegate?.didDismiss(self, details: details, error: nil)  ?? self.log(.delegateUnavailable)
+        delegate?.didDismiss(self, details: details, error: nil)  ?? log(.delegateUnavailable)
     }
 
     // Called immediately before attempting to present an ad.
