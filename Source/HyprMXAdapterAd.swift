@@ -7,7 +7,6 @@ import ChartboostMediationSDK
 import Foundation
 import HyprMX
 
-///
 /// Base class for Chartboost Mediation HyprMX adapter ads.
 /// It is convenient to create a base class for your adapter's PartnerAd types, although this is not required.
 class HyprMXAdapterAd: NSObject {

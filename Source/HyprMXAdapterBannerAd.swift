@@ -14,15 +14,13 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.loadStarted)
-        loadCompletion = completion
-
         guard let size = request.size else {
-            let loadError = ChartboostMediationError(code: .loadFailureInvalidBannerSize)
+            let loadError = error(.loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
             completion(.failure(loadError))
-            loadCompletion = nil
             return
         }
+        loadCompletion = completion
 
         // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
         let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
@@ -60,7 +58,7 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
 
     // Called when a banner click will open a full-screen modal
     func adDidOpen(_ bannerView: HyprMXBannerView) {
-        log(.showSucceeded)
+        log(.delegateCallIgnored)
     }
 
     // Called when a full-screen modal has been closed

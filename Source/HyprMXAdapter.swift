@@ -19,12 +19,12 @@ final class HyprMXAdapter: PartnerAdapter {
     // MARK: PartnerAdapter
 
     /// The version of the partner SDK.
-    let partnerSDKVersion = "6.0.3"
+    let partnerSDKVersion = "6.0.0"
 
     /// The version of the adapter.
     /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
     /// Format: `<Chartboost Mediation major version>.<Partner major version>.<Partner minor version>.<Partner patch version>.<Partner build version>.<Adapter build version>` where `.<Partner build version>` is optional.
-    let adapterVersion = "4.6.0.3.0"
+    let adapterVersion = "4.6.0.0.0"
 
     /// The partner's unique identifier.
     let partnerIdentifier = "hyprmx"
@@ -32,27 +32,31 @@ final class HyprMXAdapter: PartnerAdapter {
     /// The human-friendly partner name.
     let partnerDisplayName = "HyprMX"
 
+    /// The designated initializer for the adapter.
+    /// Chartboost Mediation SDK will use this constructor to create instances of conforming types.
+    /// - parameter storage: An object that exposes storage managed by the Chartboost Mediation SDK to the adapter.
+    /// It includes a list of created `PartnerAd` instances. You may ignore this parameter if you don't need it.
+    init(storage: PartnerAdapterStorage) {
+    }
+
     /// Does any setup needed before beginning to load ads.
     /// - parameter configuration: Configuration data for the adapter to set up.
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
-        initializationCompletion = completion
+        log(.setUpStarted)
         guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
-            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
-                                                 description: "The distributor id was invalid")
+            let error = error(.initializationFailureInvalidCredentials, description: "The distributor id was invalid")
             log(.setUpFailed(error))
             completion(error)
-            initializationCompletion = nil
             return
         }
         guard let userId = HyperMXAdapterConfiguration.userId else {
-            let error = ChartboostMediationError(code: .initializationFailureInvalidCredentials,
-                                                 description: "HyprMX reqiures a permanent userId to initialize their SDK")
+            let error = error(.initializationFailureInvalidCredentials, description: "HyprMX reqiures a permanent userId to initialize their SDK")
             log(.setUpFailed(error))
             completion(error)
-            initializationCompletion = nil
             return
         }
+        initializationCompletion = completion
 
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
@@ -120,20 +124,14 @@ final class HyprMXAdapter: PartnerAdapter {
             return HyprMXAdapterInterstitialAd(adapter: self, request: request, delegate: delegate)
         case .rewarded:
             return HyprMXAdapterRewardedAd(adapter: self, request: request, delegate: delegate)
-        @unknown default:
+        default:
             throw error(.loadFailureUnsupportedAdFormat)
         }
     }
 
-    /// The designated initializer for the adapter.
-    /// Chartboost Mediation SDK will use this constructor to create instances of conforming types.
-    /// - parameter storage: An object that exposes storage managed by the Chartboost Mediation SDK to the adapter.
-    /// It includes a list of created `PartnerAd` instances. You may ignore this parameter if you don't need it.
-    init(storage: PartnerAdapterStorage) {
-    }
-
     /// HyprMX distills all privacy preferences into a single HyprConsentStatus value, so the we have to look at both the
     /// GDPR and CCPA settings whenever we receive an update.
+    /// Details are available here https://documentation.hyprmx.com/ios-hyprmx-sdk/#quickstart-initializinghyprmx
     func determineConsentState() -> HyprConsentStatus {
         if gdprOptOut == true || ccpaOptOut == true {
             return CONSENT_DECLINED
@@ -167,7 +165,7 @@ extension HyprMXAdapter: HyprMXInitializationDelegate {
     }
 
     func initializationFailed() {
-        let error = ChartboostMediationError(code: .initializationFailureUnknown)
+        let error = error(.initializationFailureUnknown)
         log(.setUpFailed(error))
         initializationCompletion?(error)
         initializationCompletion = nil
