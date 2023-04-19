@@ -1,4 +1,4 @@
-  Pod::Spec.new do |spec|
+Pod::Spec.new do |spec|
     spec.name        = 'ChartboostMediationAdapterHyprMX'
     spec.version     = '4.6.0.0.0'
     spec.license     = { :type => 'MIT', :file => 'LICENSE.md' }
@@ -27,4 +27,4 @@
 
     # Indicates, that if use_frameworks! is specified, the pod should include a static library framework.
     spec.static_framework = true
-  end
+end
