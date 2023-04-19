@@ -27,4 +27,4 @@ Pod::Spec.new do |spec|
 
     # Indicates, that if use_frameworks! is specified, the pod should include a static library framework.
     spec.static_framework = true
-  end
+end
