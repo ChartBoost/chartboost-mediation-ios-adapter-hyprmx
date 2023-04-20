@@ -9,5 +9,5 @@ import Foundation
 @objc public class HyperMXAdapterConfiguration: NSObject {
 
     /// HyprMX requires publishers to provide a unique user identifier
-    @objc public static var userId: String? = nil
+    @objc public static var userID: String? = nil
 }

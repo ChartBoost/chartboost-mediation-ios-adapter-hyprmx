@@ -50,7 +50,7 @@ final class HyprMXAdapter: PartnerAdapter {
             completion(error)
             return
         }
-        guard let userId = HyperMXAdapterConfiguration.userId else {
+        guard let userID = HyperMXAdapterConfiguration.userID else {
             let error = error(.initializationFailureInvalidCredentials, description: "HyprMX reqiures a permanent userId to initialize their SDK")
             log(.setUpFailed(error))
             completion(error)
@@ -61,7 +61,7 @@ final class HyprMXAdapter: PartnerAdapter {
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
             HyprMX.initialize(withDistributorId: distributorId,
-                              userId: userId,
+                              userId: userID,
                               initializationDelegate: self)
         }
     }
