@@ -89,6 +89,8 @@ final class HyprMXAdapter: PartnerAdapter {
                 gdprOptOut = true
             case .unknown:
                 gdprOptOut = nil
+            @unknown default:
+                gdprOptOut = nil
             }
         } else {
             // In the case of either a false or nil value of 'applies', we set gdprOptOut
