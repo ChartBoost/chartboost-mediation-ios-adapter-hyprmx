@@ -57,18 +57,18 @@ final class HyprMXAdapter: PartnerAdapter {
         }
         initializationCompletion = completion
 
-        var gameId: String!
-        if let storedGameId = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
-            gameId = storedGameId
+        var gameID: String
+        if let storedGameID = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
+            gameID = storedGameID
         } else {
-            gameId = ProcessInfo.processInfo.globallyUniqueString
-            UserDefaults.standard.set(gameId, forKey: GAMEID_STORAGE_KEY)
+            gameID = ProcessInfo.processInfo.globallyUniqueString
+            UserDefaults.standard.set(gameID, forKey: GAMEID_STORAGE_KEY)
         }
 
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
             HyprMX.initialize(withDistributorId: distributorId,
-                              userId: gameId,
+                              userId: gameID,
                               initializationDelegate: self)
         }
     }
