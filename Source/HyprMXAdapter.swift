@@ -9,6 +9,7 @@ import HyprMX
 final class HyprMXAdapter: PartnerAdapter {
 
     private let DISTRIBUTOR_ID_KEY = "distributor_id"
+    private let GAMEID_STORAGE_KEY = "com.chartboost.adapter.hyprmx.game_id"
     // We track "has opted out" instead of "has opted in" because it makes the
     // three-valued (true, false, nil) truth table easier to read
     private var gdprOptOut: Bool? = nil
@@ -54,18 +55,20 @@ final class HyprMXAdapter: PartnerAdapter {
             completion(error)
             return
         }
-        guard let userID = HyperMXAdapterConfiguration.userID else {
-            let error = error(.initializationFailureInvalidCredentials, description: "HyprMX reqiures a permanent userId to initialize their SDK")
-            log(.setUpFailed(error))
-            completion(error)
-            return
-        }
         initializationCompletion = completion
+
+        var gameId: String!
+        if let storedGameId = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
+            gameId = storedGameId
+        } else {
+            gameId = ProcessInfo.processInfo.globallyUniqueString
+            UserDefaults.standard.set(gameId, forKey: GAMEID_STORAGE_KEY)
+        }
 
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
             HyprMX.initialize(withDistributorId: distributorId,
-                              userId: userID,
+                              userId: gameId,
                               initializationDelegate: self)
         }
     }
