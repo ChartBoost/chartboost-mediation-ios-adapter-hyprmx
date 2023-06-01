@@ -9,7 +9,9 @@ Pod::Spec.new do |spec|
 
     # Source
     spec.module_name  = 'ChartboostMediationAdapterHyprMX'
-    spec.source       = { :git => 'https://github.com/ChartBoost/chartboost-mediation-ios-adapter-hyprmx.git', :tag => spec.version }
+    # spec.source       = { :git => 'https://github.com/ChartBoost/chartboost-mediation-ios-adapter-hyprmx.git', :tag => spec.version }
+    spec.source       = { :git => '.', :tag => spec.version }
+    
     spec.source_files = 'Source/**/*.{swift}'
 
     # Minimum supported versions
@@ -27,4 +29,10 @@ Pod::Spec.new do |spec|
 
     # Indicates, that if use_frameworks! is specified, the pod should include a static library framework.
     spec.static_framework = true
+
+    spec.test_spec 'Tests' do |test_spec|
+      test_spec.requires_app_host = true
+      test_spec.source_files = 'Tests/**/*.{swift}'
+      test_spec.dependency 'ChartboostMediationSDK', '~> 4.0'
+    end
 end
