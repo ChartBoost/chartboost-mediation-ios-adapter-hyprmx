@@ -10,7 +10,7 @@ Pod::Spec.new do |spec|
     # Source
     spec.module_name  = 'ChartboostMediationAdapterHyprMX'
     # spec.source       = { :git => 'https://github.com/ChartBoost/chartboost-mediation-ios-adapter-hyprmx.git', :tag => spec.version }
-    spec.source       = { :git => '.', :tag => spec.version }
+    spec.source       = { :git => '.', :tag => 'local-test-1' }
     
     spec.source_files = 'Source/**/*.{swift}'
 
