@@ -20,7 +20,7 @@ final class HyprMXAdapter: PartnerAdapter {
     // MARK: PartnerAdapter
 
     /// The version of the partner SDK.
-    let partnerSDKVersion = "6.0.0"
+    let partnerSDKVersion = HyprMX.versionString()
 
     /// The version of the adapter.
     /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
