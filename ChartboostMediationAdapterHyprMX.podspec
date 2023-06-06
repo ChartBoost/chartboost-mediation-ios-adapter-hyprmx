@@ -19,11 +19,11 @@ Pod::Spec.new do |spec|
   # System frameworks used
   spec.ios.frameworks = ['Foundation', 'UIKit']
 
-  # Partner network SDK and version that this adapter is certified to work with.
-  spec.dependency 'HyprMX', '~> 6.2.0'
-
   # This adapter is compatible with all Chartboost Mediation 4.X versions of the SDK.
   spec.dependency 'ChartboostMediationSDK', '~> 4.0'
+
+  # Partner network SDK and version that this adapter is certified to work with.
+  spec.dependency 'HyprMX', '~> 6.2.0'
 
   # Indicates, that if use_frameworks! is specified, the pod should include a static library framework.
   spec.static_framework = true

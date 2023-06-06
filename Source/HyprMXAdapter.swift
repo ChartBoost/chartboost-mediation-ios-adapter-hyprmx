@@ -57,7 +57,7 @@ final class HyprMXAdapter: PartnerAdapter {
         }
         initializationCompletion = completion
 
-        var gameID: String
+        let gameID: String
         if let storedGameID = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
             gameID = storedGameID
         } else {
