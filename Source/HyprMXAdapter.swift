@@ -70,6 +70,7 @@ final class HyprMXAdapter: PartnerAdapter {
             HyprMX.initialize(withDistributorId: distributorId,
                               userId: gameID,
                               initializationDelegate: self)
+            completion(nil)
         }
     }
 
@@ -78,6 +79,7 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter completion: Closure to be performed with the fetched info.
     func fetchBidderInformation( request: PreBidRequest, completion: @escaping ([String: String]?) -> Void ) {
         // HyprMX does not use a bidding token
+        completion(nil)
     }
 
     /// Indicates if GDPR applies or not and the user's GDPR consent status.
