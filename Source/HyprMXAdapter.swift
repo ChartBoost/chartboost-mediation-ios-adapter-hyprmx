@@ -70,7 +70,6 @@ final class HyprMXAdapter: PartnerAdapter {
             HyprMX.initialize(withDistributorId: distributorId,
                               userId: gameID,
                               initializationDelegate: self)
-            completion(nil)
         }
     }
 
