@@ -180,7 +180,9 @@ final class HyprMXAdapter: PartnerAdapter {
 
         // HyprMX only supports interaction from the Main Thread
         DispatchQueue.main.async { [self] in
-            HyprMX.setConsentStatus(determineConsentState())
+            let consentState = determineConsentState()
+            HyprMX.setConsentStatus(consentState)
+            log(.privacyUpdated(setting: "HyprConsentStatus", value: consentState))
         }
     }
 }
@@ -197,5 +199,20 @@ extension HyprMXAdapter: HyprMXInitializationDelegate {
         log(.setUpFailed(error))
         initializationCompletion?(error)
         initializationCompletion = nil
+    }
+}
+
+extension HyprConsentStatus: CustomStringConvertible {
+    public var description: String {
+        switch self.rawValue {
+        case 0:
+            return "CONSENT_STATUS_UNKNOWN"
+        case 1:
+            return "CONSENT_GIVEN"
+        case 2:
+            return "CONSENT_DECLINED"
+        default:
+            return "undefined consent status"
+        }
     }
 }
