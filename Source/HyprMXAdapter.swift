@@ -182,7 +182,7 @@ final class HyprMXAdapter: PartnerAdapter {
         DispatchQueue.main.async { [self] in
             let consentState = determineConsentState()
             HyprMX.setConsentStatus(consentState)
-            log(.privacyUpdated(setting: "HyprConsentStatus", value: consentState))
+            log(.privacyUpdated(setting: "HyprConsentStatus", value: consentState.description))
         }
     }
 }
@@ -202,8 +202,8 @@ extension HyprMXAdapter: HyprMXInitializationDelegate {
     }
 }
 
-extension HyprConsentStatus: CustomStringConvertible {
-    public var description: String {
+internal extension HyprConsentStatus {
+    var description: String {
         switch self.rawValue {
         case 0:
             return "CONSENT_STATUS_UNKNOWN"
