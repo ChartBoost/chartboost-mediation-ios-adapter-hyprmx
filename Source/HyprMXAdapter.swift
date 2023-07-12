@@ -76,6 +76,7 @@ final class HyprMXAdapter: PartnerAdapter {
                               consentStatus: CONSENT_STATUS_UNKNOWN,
                               ageRestrictedUser: savedAgeRestrictedUserSetting,
                               initializationDelegate: self)
+            // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
         }
     }
 
@@ -122,6 +123,10 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Indicates if the user is subject to COPPA or not.
     /// - parameter isChildDirected: `true` if the user is subject to COPPA, `false` otherwise.
     func setCOPPA(isChildDirected: Bool) {
+        // We map the COPPA setting to HyprMX's ageRestrictedUser setting based on their description
+        // of its intended use, for instance "If the user requires child-directed treatment under
+        // applicable laws and policies, set this parameter to true."
+        // More info at https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
         UserDefaults.standard.set(isChildDirected, forKey: AGE_RESTRICTED_USER_KEY)
         log(.privacyUpdated(setting: "ageRestrictedUser", value: isChildDirected))
     }
