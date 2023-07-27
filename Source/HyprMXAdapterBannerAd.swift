@@ -69,6 +69,7 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
     // Called when the user clicks on the bannerView
     func adWasClicked(_ bannerView: HyprMXBannerView) {
         log(.didClick(error: nil))
+        delegate?.didClick(self, details: [:]) ?? log(.delegateUnavailable)
     }
 
     // Called when a banner click will open another application
