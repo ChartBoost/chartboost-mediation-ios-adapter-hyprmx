@@ -209,12 +209,12 @@ extension HyprMXAdapter: HyprMXInitializationDelegate {
 
 extension HyprConsentStatus {
     var description: String {
-        switch self.rawValue {
-        case 0:
+        switch self {
+        case CONSENT_STATUS_UNKNOWN:
             return "CONSENT_STATUS_UNKNOWN"
-        case 1:
+        case CONSENT_GIVEN:
             return "CONSENT_GIVEN"
-        case 2:
+        case CONSENT_DECLINED:
             return "CONSENT_DECLINED"
         default:
             return "undefined consent status"
