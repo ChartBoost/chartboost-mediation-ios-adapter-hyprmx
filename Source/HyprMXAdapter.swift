@@ -207,7 +207,7 @@ extension HyprMXAdapter: HyprMXInitializationDelegate {
     }
 }
 
-internal extension HyprConsentStatus {
+extension HyprConsentStatus {
     var description: String {
         switch self.rawValue {
         case 0:
