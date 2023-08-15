@@ -3,6 +3,10 @@
 Note the first digit of every adapter version corresponds to the major version of the Chartboost Mediation SDK compatible with that adapter. 
 Adapters are compatible with any Chartboost Mediation SDK version within that major version.
 
+### 4.6.2.0.2
+- `ageRestrictedUser` is now always set to `true`
+- This version of the adapters has been certified with HyprMX 6.2.0.
+
 ### 4.6.2.0.1
 - Pass COPPA setting HyprMX at startup.
 - Add logging for changes to privacy consent status.

@@ -8,7 +8,6 @@ import HyprMX
 
 final class HyprMXAdapter: PartnerAdapter {
 
-    private let AGE_RESTRICTED_USER_KEY = "com.chartboost.adapter.hyprmx.ageRestrictedUser"
     private let DISTRIBUTOR_ID_KEY = "distributor_id"
     private let GAMEID_STORAGE_KEY = "com.chartboost.adapter.hyprmx.game_id"
     // We track "has opted out" instead of "has opted in" because it makes the
@@ -26,7 +25,7 @@ final class HyprMXAdapter: PartnerAdapter {
     /// The version of the adapter.
     /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
     /// Format: `<Chartboost Mediation major version>.<Partner major version>.<Partner minor version>.<Partner patch version>.<Partner build version>.<Adapter build version>` where `.<Partner build version>` is optional.
-    let adapterVersion = "4.6.2.0.1"
+    let adapterVersion = "4.6.2.0.2"
 
     /// The partner's unique identifier.
     let partnerIdentifier = "hyprmx"
@@ -66,16 +65,14 @@ final class HyprMXAdapter: PartnerAdapter {
             UserDefaults.standard.set(gameID, forKey: GAMEID_STORAGE_KEY)
         }
 
-        // UserDefaults.standard.bool defaults to false if key is not present
-        let savedAgeRestrictedUserSetting = UserDefaults.standard.bool(forKey: AGE_RESTRICTED_USER_KEY)
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
             // consentStatus will be updated by setGDPR & setCCPA after init
             HyprMX.initialize(withDistributorId: distributorId,
-                              userId: gameID,
-                              consentStatus: CONSENT_STATUS_UNKNOWN,
-                              ageRestrictedUser: savedAgeRestrictedUserSetting,
-                              initializationDelegate: self)
+              userId: gameID,
+              consentStatus: CONSENT_STATUS_UNKNOWN,
+              ageRestrictedUser: true,  // HyprMX has requested that we simply default to "true"
+              initializationDelegate: self)
             // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
         }
     }
@@ -123,12 +120,7 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Indicates if the user is subject to COPPA or not.
     /// - parameter isChildDirected: `true` if the user is subject to COPPA, `false` otherwise.
     func setCOPPA(isChildDirected: Bool) {
-        // We map the COPPA setting to HyprMX's ageRestrictedUser setting based on their description
-        // of its intended use, for instance "If the user requires child-directed treatment under
-        // applicable laws and policies, set this parameter to true."
-        // More info at https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
-        UserDefaults.standard.set(isChildDirected, forKey: AGE_RESTRICTED_USER_KEY)
-        log(.privacyUpdated(setting: "ageRestrictedUser", value: isChildDirected))
+        // HyprMX has requested that we simply default to "true" at init.
     }
 
     /// Creates a new ad object in charge of communicating with a single partner SDK ad instance.
