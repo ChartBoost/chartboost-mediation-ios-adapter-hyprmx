@@ -69,10 +69,10 @@ final class HyprMXAdapter: PartnerAdapter {
         DispatchQueue.main.async { [self] in
             // consentStatus will be updated by setGDPR & setCCPA after init
             HyprMX.initialize(withDistributorId: distributorId,
-                              userId: gameID,
-                              consentStatus: CONSENT_STATUS_UNKNOWN,
-                              ageRestrictedUser: true,  // HyprMX has requested that we simply default to "true"
-                              initializationDelegate: self)
+              userId: gameID,
+              consentStatus: CONSENT_STATUS_UNKNOWN,
+              ageRestrictedUser: true,  // HyprMX has requested that we simply default to "true"
+              initializationDelegate: self)
             // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
         }
     }
