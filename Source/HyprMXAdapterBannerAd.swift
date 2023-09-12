@@ -14,7 +14,8 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
         log(.loadStarted)
-        guard let size = request.size else {
+        guard let requestedSize = request.size,
+              let size = fixedBannerSize(for: requestedSize) else {
             let loadError = error(.loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
             completion(.failure(loadError))
@@ -45,7 +46,14 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
     // Called in response to loadAd when an ad was loaded
     func adDidLoad(_ bannerView: HyprMXBannerView) {
         log(.loadSucceeded)
-        loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
+
+        var partnerDetails: [String: String] = [:]
+        if let loadedSize = fixedBannerSize(for: request.size ?? IABStandardAdSize) {
+            partnerDetails["bannerWidth"] = "\(loadedSize.width)"
+            partnerDetails["bannerHeight"] = "\(loadedSize.height)"
+            partnerDetails["bannerType"] = "0" // Fixed banner
+        }
+        loadCompletion?(.success(partnerDetails)) ?? log(.loadResultIgnored)
         loadCompletion = nil
     }
 
@@ -75,5 +83,21 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
     // Called when a banner click will open another application
     func adWillLeaveApplication(_ bannerView: HyprMXBannerView) {
         log(.delegateCallIgnored)
+    }
+}
+
+extension HyprMXAdapterBannerAd {
+    private func fixedBannerSize(for requestedSize: CGSize) -> CGSize? {
+        let sizes = [IABLeaderboardAdSize, IABMediumAdSize, IABStandardAdSize]
+        // Find the largest size that can fit in the requested size.
+        for size in sizes {
+            // If height is 0, the pub has requested an ad of any height, so only the width matters.
+            if requestedSize.width >= size.width &&
+                (size.height == 0 || requestedSize.height >= size.height) {
+                return size
+            }
+        }
+        // The requested size cannot fit any fixed size banners.
+        return nil
     }
 }
