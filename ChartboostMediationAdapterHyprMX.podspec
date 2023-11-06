@@ -11,6 +11,7 @@ Pod::Spec.new do |spec|
   spec.module_name  = 'ChartboostMediationAdapterHyprMX'
   spec.source       = { :git => 'https://github.com/ChartBoost/chartboost-mediation-ios-adapter-hyprmx.git', :tag => spec.version }
   spec.source_files = 'Source/**/*.{swift}'
+  spec.resource_bundles = { 'ChartboostMediationAdapterHyprMX' => ['PrivacyInfo.xcprivacy'] }
 
   # Minimum supported versions
   spec.swift_version         = '5.0'
