@@ -4,6 +4,7 @@ Note the first digit of every adapter version corresponds to the major version o
 Adapters are compatible with any Chartboost Mediation SDK version within that major version.
 
 ### 4.6.3.0.0
+- Change minimum deployment target to iOS 11.0.
 - This version of the adapter has been certified with HyprMX 6.3.0.
 
 ### 4.6.2.0.3
