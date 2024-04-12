@@ -10,10 +10,6 @@ import HyprMX
 /// The Chartboost Mediation HyprMX adapter interstitial ad.
 final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
 
-    /// The loaded partner ad banner size.
-    /// Should be `nil` for full-screen ads.
-    var bannerSize: PartnerBannerSize? { nil }
-
     /// The HyprMXSDK ad instance.
     var ad: HyprMXPlacement?
 
