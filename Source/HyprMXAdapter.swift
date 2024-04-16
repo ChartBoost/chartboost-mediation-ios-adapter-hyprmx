@@ -138,14 +138,13 @@ final class HyprMXAdapter: PartnerAdapter {
         // ChartboostMediationSDK 4.x does not support loading more than 2 banners with the same placement, and the partner may or may not support it.
         guard !storage.ads.contains(where: { $0.request.partnerPlacement == request.partnerPlacement })
             || request.format == PartnerAdFormats.banner
-            || request.format == PartnerAdFormats.adaptiveBanner
         else {
             log("Failed to load ad for already loading placement \(request.partnerPlacement)")
             throw error(.loadFailureLoadInProgress)
         }
         
         switch request.format {
-        case PartnerAdFormats.banner, PartnerAdFormats.adaptiveBanner:
+        case PartnerAdFormats.banner:
             return HyprMXAdapterBannerAd(adapter: self, request: request, delegate: delegate)
         case PartnerAdFormats.interstitial:
             return HyprMXAdapterInterstitialAd(adapter: self, request: request, delegate: delegate)
