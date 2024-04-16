@@ -15,7 +15,7 @@ final class HyprMXAdapter: PartnerAdapter {
     private var gdprOptOut: Bool? = nil
     private var ccpaOptOut: Bool? = nil
 
-    private var initializationCompletion: ((Error?) -> Void)?
+    private var initializationCompletion: ((Result<PartnerDetails, Error>) -> Void)?
 
     // MARK: PartnerAdapter
 
@@ -28,7 +28,7 @@ final class HyprMXAdapter: PartnerAdapter {
     let adapterVersion = "4.6.3.0.0"
 
     /// The partner's unique identifier.
-    let partnerIdentifier = "hyprmx"
+    let partnerID = "hyprmx"
 
     /// The human-friendly partner name.
     let partnerDisplayName = "HyprMX"
@@ -47,12 +47,12 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Does any setup needed before beginning to load ads.
     /// - parameter configuration: Configuration data for the adapter to set up.
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
-    func setUp(with configuration: PartnerConfiguration, completion: @escaping (Error?) -> Void) {
+    func setUp(with configuration: PartnerConfiguration, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.setUpStarted)
         guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
             let error = error(.initializationFailureInvalidCredentials, description: "The distributor id was invalid")
             log(.setUpFailed(error))
-            completion(error)
+            completion(.failure(error))
             return
         }
         initializationCompletion = completion
@@ -80,9 +80,10 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Fetches bidding tokens needed for the partner to participate in an auction.
     /// - parameter request: Information about the ad load request.
     /// - parameter completion: Closure to be performed with the fetched info.
-    func fetchBidderInformation( request: PreBidRequest, completion: @escaping ([String: String]?) -> Void ) {
+    func fetchBidderInformation( request: PartnerAdPreBidRequest, completion: @escaping (Result<[String: String], Error>) -> Void ) {
         // HyprMX does not use a bidding token
-        completion(nil)
+        log(.fetchBidderInfoNotSupported)
+        completion(.success([:]))
     }
 
     /// Indicates if GDPR applies or not and the user's GDPR consent status.
@@ -136,26 +137,22 @@ final class HyprMXAdapter: PartnerAdapter {
         // Banner loads are allowed so a banner prefetch can happen during auto-refresh.
         // ChartboostMediationSDK 4.x does not support loading more than 2 banners with the same placement, and the partner may or may not support it.
         guard !storage.ads.contains(where: { $0.request.partnerPlacement == request.partnerPlacement })
-            || request.format == .banner
+            || request.format == PartnerAdFormats.banner
+            || request.format == PartnerAdFormats.adaptiveBanner
         else {
             log("Failed to load ad for already loading placement \(request.partnerPlacement)")
             throw error(.loadFailureLoadInProgress)
         }
         
         switch request.format {
-        case .banner:
+        case PartnerAdFormats.banner, PartnerAdFormats.adaptiveBanner:
             return HyprMXAdapterBannerAd(adapter: self, request: request, delegate: delegate)
-        case .interstitial:
+        case PartnerAdFormats.interstitial:
             return HyprMXAdapterInterstitialAd(adapter: self, request: request, delegate: delegate)
-        case .rewarded:
+        case PartnerAdFormats.rewarded:
             return HyprMXAdapterRewardedAd(adapter: self, request: request, delegate: delegate)
         default:
-            // Not using the `.adaptiveBanner` case directly to maintain backward compatibility with Chartboost Mediation 4.0
-            if request.format.rawValue == "adaptive_banner" {
-                return HyprMXAdapterBannerAd(adapter: self, request: request, delegate: delegate)
-            } else {
-                throw error(.loadFailureUnsupportedAdFormat)
-            }
+            throw error(.loadFailureUnsupportedAdFormat)
         }
     }
 
@@ -192,14 +189,14 @@ final class HyprMXAdapter: PartnerAdapter {
 extension HyprMXAdapter: HyprMXInitializationDelegate {
     func initializationDidComplete() {
         log(.setUpSucceded)
-        initializationCompletion?(nil)
+        initializationCompletion?(.success([:]))
         initializationCompletion = nil
     }
 
     func initializationFailed() {
         let error = error(.initializationFailureUnknown)
         log(.setUpFailed(error))
-        initializationCompletion?(error)
+        initializationCompletion?(.failure(error))
         initializationCompletion = nil
     }
 }
