@@ -8,7 +8,7 @@ import Foundation
 import HyprMX
 
 /// The Chartboost Mediation HyprMX adapter rewarded ad.
-final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerAd {
+final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerFullscreenAd {
 
     /// The HyprMXSDK ad instance.
     var ad: HyprMXPlacement?

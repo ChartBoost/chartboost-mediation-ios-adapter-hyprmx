@@ -10,14 +10,6 @@ import HyprMX
 /// Base class for Chartboost Mediation HyprMX adapter ads.
 /// It is convenient to create a base class for your adapter's PartnerAd types, although this is not required.
 class HyprMXAdapterAd: NSObject {
-    /// The partner ad view to display inline. E.g. a banner view.
-    /// Should be nil for full-screen ads.
-    var inlineView: UIView?
-
-    /// The loaded partner ad banner size.
-    /// Should be `nil` for full-screen ads.
-    var bannerSize: PartnerBannerSize?
-
     /// The partner adapter that created this ad.
     let adapter: PartnerAdapter
 

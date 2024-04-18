@@ -8,7 +8,7 @@ import Foundation
 import HyprMX
 
 /// The Chartboost Mediation HyprMX adapter interstitial ad.
-final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
+final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerFullscreenAd {
 
     /// The HyprMXSDK ad instance.
     var ad: HyprMXPlacement?

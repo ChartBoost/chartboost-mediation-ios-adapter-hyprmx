@@ -8,25 +8,31 @@ import Foundation
 import HyprMX
 
 /// The Chartboost Mediation HyprMX adapter banner ad.
-final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
+final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerBannerAd {
+    /// The partner banner ad view to display.
+    var view: UIView?
+
+    /// The loaded partner ad banner size.
+    var size: PartnerBannerSize?
+
     /// Loads an ad.
     /// - parameter viewController: The view controller on which the ad will be presented on. Needed on load for some banners.
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.loadStarted)
         guard let requestedSize = request.bannerSize,
-              let size = fixedBannerSize(for: requestedSize) else {
+              let loadedSize = fixedBannerSize(for: requestedSize) else {
             let loadError = error(.loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
             completion(.failure(loadError))
             return
         }
-        bannerSize = PartnerBannerSize(size: size, type: .fixed)
+        size = PartnerBannerSize(size: loadedSize, type: .fixed)
         loadCompletion = completion
 
         // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
-        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
-        inlineView = ad
+        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: loadedSize)
+        view = ad
         ad.placementDelegate = self
         ad.loadAd()
     }
