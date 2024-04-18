@@ -14,7 +14,7 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.loadStarted)
-        guard let requestedSize = request.size,
+        guard let requestedSize = request.bannerSize,
               let size = fixedBannerSize(for: requestedSize) else {
             let loadError = error(.loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
@@ -81,13 +81,13 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
 }
 
 extension HyprMXAdapterBannerAd {
-    private func fixedBannerSize(for requestedSize: CGSize) -> CGSize? {
+    private func fixedBannerSize(for requestedSize: BannerSize) -> CGSize? {
         let sizes = [IABLeaderboardAdSize, IABMediumAdSize, IABStandardAdSize]
         // Find the largest size that can fit in the requested size.
         for size in sizes {
             // If height is 0, the pub has requested an ad of any height, so only the width matters.
-            if requestedSize.width >= size.width &&
-                (size.height == 0 || requestedSize.height >= size.height) {
+            if requestedSize.size.width >= size.width &&
+                (size.height == 0 || requestedSize.size.height >= size.height) {
                 return size
             }
         }
