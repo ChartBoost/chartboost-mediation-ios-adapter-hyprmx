@@ -10,11 +10,6 @@ final class HyprMXAdapter: PartnerAdapter {
 
     private let DISTRIBUTOR_ID_KEY = "distributor_id"
     private let GAMEID_STORAGE_KEY = "com.chartboost.adapter.hyprmx.game_id"
-    // We track "has opted out" instead of "has opted in" because it makes the
-    // three-valued (true, false, nil) truth table easier to read
-    private var gdprOptOut: Bool? = nil
-    private var ccpaOptOut: Bool? = nil
-
     private var initializationCompletion: ((Result<PartnerDetails, Error>) -> Void)?
 
     // MARK: PartnerAdapter
@@ -75,12 +70,14 @@ final class HyprMXAdapter: PartnerAdapter {
         HyprMX.setLogLevel(HYPRLogLevelDebug)
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
-            // consentStatus will be updated by setGDPR & setCCPA after init
-            HyprMX.initialize(withDistributorId: distributorId,
-              userId: gameID,
-              consentStatus: CONSENT_STATUS_UNKNOWN,
-              ageRestrictedUser: true,  // HyprMX has requested that we simply default to "true"
-              initializationDelegate: self)
+            // consentStatus will be updated by setConsents() after init
+            HyprMX.initialize(
+                withDistributorId: distributorId,
+                userId: gameID,
+                consentStatus: consentStatus(from: configuration.consents),
+                ageRestrictedUser: configuration.isUserUnderage,
+                initializationDelegate: self
+            )
             // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
         }
     }
@@ -94,42 +91,67 @@ final class HyprMXAdapter: PartnerAdapter {
         completion(.success([:]))
     }
 
-    /// Indicates if GDPR applies or not and the user's GDPR consent status.
-    /// - parameter applies: `true` if GDPR applies, `false` if not, `nil` if the publisher has not provided this information.
-    /// - parameter status: One of the `GDPRConsentStatus` values depending on the user's preference.
-    func setGDPR(applies: Bool?, status: GDPRConsentStatus) {
-        if applies == true {
-            switch status {
-            case .granted:
-                gdprOptOut = false
-            case .denied:
-                gdprOptOut = true
-            case .unknown:
-                gdprOptOut = nil
-            @unknown default:
-                gdprOptOut = nil
-            }
-        } else {
-            // In the case of either a false or nil value of 'applies', we set gdprOptOut
-            // to nil, because the GDPR status should not be taken into consideration
+    /// Indicates that the user consent has changed.
+    /// - parameter consents: The new consents value, including both modified and unmodified consents.
+    /// - parameter modifiedKeys: A set containing all the keys that changed.
+    func setConsents(_ consents: [ConsentKey: ConsentValue], modifiedKeys: Set<ConsentKey>) {
+        guard modifiedKeys.contains(partnerID)
+                || modifiedKeys.contains(ConsentKeys.gdprConsentGiven)
+                || modifiedKeys.contains(ConsentKeys.ccpaOptIn)
+        else {
+            return
+        }
+        // HyprMX only supports interaction from the Main Thread
+        DispatchQueue.main.async { [self] in
+            let consentStatus = consentStatus(from: consents)
+            HyprMX.setConsentStatus(consentStatus)
+            log(.privacyUpdated(setting: "HyprConsentStatus", value: consentStatus.description))
+        }
+    }
+
+    /// Indicates that the user is underage signal has changed.
+    /// - parameter isUserUnderage: `true` if the user is underage as determined by the publisher, `false` otherwise.
+    func setIsUserUnderage(_ isUserUnderage: Bool) {
+        // HyprMX has requested that we simply default to "true" at init.
+    }
+
+    /// HyprMX distills all privacy preferences into a single HyprConsentStatus value, so the we have to look at both the
+    /// GDPR and CCPA settings whenever we receive an update.
+    /// Details are available here https://documentation.hyprmx.com/ios-hyprmx-sdk/#quickstart-initializinghyprmx
+    private func consentStatus(from consents: [ConsentKey: ConsentValue]) -> HyprConsentStatus {
+        // Determine GDPR status
+        let gdprOptOut: Bool?
+        let consent = consents[partnerID] ?? consents[ConsentKeys.gdprConsentGiven]
+        switch consent {
+        case ConsentValues.granted:
+            gdprOptOut = false
+        case ConsentValues.denied:
+            gdprOptOut = true
+        default:
             gdprOptOut = nil
         }
-        updateConsentState()
-    }
-
-    /// Indicates the CCPA status both as a boolean and as an IAB US privacy string.
-    /// - parameter hasGivenConsent: A boolean indicating if the user has given consent.
-    /// - parameter privacyString: An IAB-compliant string indicating the CCPA status.
-    func setCCPA(hasGivenConsent: Bool, privacyString: String) {
-        // We invert "has given consent" to "NOT has opted out" because the HyprConsent
-        ccpaOptOut = !hasGivenConsent
-        updateConsentState()
-    }
-
-    /// Indicates if the user is subject to COPPA or not.
-    /// - parameter isChildDirected: `true` if the user is subject to COPPA, `false` otherwise.
-    func setCOPPA(isChildDirected: Bool) {
-        // HyprMX has requested that we simply default to "true" at init.
+        // Determine CCPA status
+        let ccpaOptOut: Bool?
+        switch consents[ConsentKeys.ccpaOptIn] {
+        case ConsentValues.granted:
+            ccpaOptOut = false
+        case ConsentValues.denied:
+            ccpaOptOut = true
+        default:
+            ccpaOptOut = nil
+        }
+        // Determine general status
+        if gdprOptOut == true || ccpaOptOut == true {
+            return CONSENT_DECLINED
+        } else if gdprOptOut == false && ccpaOptOut != true {
+            return CONSENT_GIVEN
+        } else if gdprOptOut != true && ccpaOptOut == false {
+            // At this point, the only gdprOptOut value we're still looking for is nil,
+            // but the symmetry of the logic with the previous if-condition is clearer this way
+            return CONSENT_GIVEN
+        } else {
+            return CONSENT_STATUS_UNKNOWN
+        }
     }
 
     /// Creates a new banner ad object in charge of communicating with a single partner SDK ad instance.
@@ -169,35 +191,6 @@ final class HyprMXAdapter: PartnerAdapter {
             return HyprMXAdapterRewardedAd(adapter: self, request: request, delegate: delegate)
         default:
             throw error(.loadFailureUnsupportedAdFormat)
-        }
-    }
-
-    /// HyprMX distills all privacy preferences into a single HyprConsentStatus value, so the we have to look at both the
-    /// GDPR and CCPA settings whenever we receive an update.
-    /// Details are available here https://documentation.hyprmx.com/ios-hyprmx-sdk/#quickstart-initializinghyprmx
-    func determineConsentState() -> HyprConsentStatus {
-        if gdprOptOut == true || ccpaOptOut == true {
-            return CONSENT_DECLINED
-        } else if gdprOptOut == false && ccpaOptOut != true {
-            return CONSENT_GIVEN
-        } else if gdprOptOut != true && ccpaOptOut == false {
-            // At this point, the only gdprOptOut value we're still looking for is nil,
-            // but the symmetry of the logic with the previous if-condition is clearer this way
-            return CONSENT_GIVEN
-        } else {
-            return CONSENT_STATUS_UNKNOWN
-        }
-    }
-
-    private func updateConsentState() {
-        // To make unit testing possible, the consent state logic was broken out into a function
-        // that returns a value. All updateConsentState needs to do is send that value to HyprMX
-
-        // HyprMX only supports interaction from the Main Thread
-        DispatchQueue.main.async { [self] in
-            let consentState = determineConsentState()
-            HyprMX.setConsentStatus(consentState)
-            log(.privacyUpdated(setting: "HyprConsentStatus", value: consentState.description))
         }
     }
 }
