@@ -20,18 +20,26 @@ final class HyprMXAdapter: PartnerAdapter {
     // MARK: PartnerAdapter
 
     /// The version of the partner SDK.
-    let partnerSDKVersion = HyprMX.versionString()
+    var partnerSDKVersion: String {
+        HyprMXAdapterConfiguration.partnerSDKVersion
+    }
 
     /// The version of the adapter.
     /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
     /// Format: `<Chartboost Mediation major version>.<Partner major version>.<Partner minor version>.<Partner patch version>.<Partner build version>.<Adapter build version>` where `.<Partner build version>` is optional.
-    let adapterVersion = "4.6.3.0.0"
+    var adapterVersion: String {
+        HyprMXAdapterConfiguration.adapterVersion
+    }
 
     /// The partner's unique identifier.
-    let partnerID = "hyprmx"
+    var partnerID: String {
+        HyprMXAdapterConfiguration.partnerID
+    }
 
     /// The human-friendly partner name.
-    let partnerDisplayName = "HyprMX"
+    var partnerDisplayName: String {
+        HyprMXAdapterConfiguration.partnerDisplayName
+    }
 
     /// Ad storage managed by Chartboost Mediation SDK.
     let storage: PartnerAdapterStorage
