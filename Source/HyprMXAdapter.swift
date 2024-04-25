@@ -72,7 +72,7 @@ final class HyprMXAdapter: PartnerAdapter {
             gameID = ProcessInfo.processInfo.globallyUniqueString
             UserDefaults.standard.set(gameID, forKey: GAMEID_STORAGE_KEY)
         }
-
+        HyprMX.setLogLevel(HYPRLogLevelDebug)
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
             // consentStatus will be updated by setGDPR & setCCPA after init

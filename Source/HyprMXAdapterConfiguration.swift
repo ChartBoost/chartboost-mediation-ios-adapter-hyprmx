@@ -24,4 +24,12 @@ import HyprMX
 
     /// The human-friendly partner name.
     @objc static let partnerDisplayName = "HyprMX"
+
+    /// Flag that can optionally be set to change the log level of the HyprMX SDK.
+    @objc public static var logLevel: HYPRLogLevel = HYPRLogLevelError {
+        didSet {
+            HyprMX.setLogLevel(newValue)
+            os_log(.debug, log: log, "HyprMX SDK log level set to %{public}s", "\(newValue)")
+        }
+    }
 }
