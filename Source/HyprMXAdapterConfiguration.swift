@@ -10,20 +10,20 @@ import HyprMX
 @objc public class HyprMXAdapterConfiguration: NSObject {
 
     /// The version of the partner SDK.
-    @objc static var partnerSDKVersion: String {
+    @objc public static var partnerSDKVersion: String {
         HyprMX.versionString()
     }
 
     /// The version of the adapter.
     /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
     /// Format: `<Chartboost Mediation major version>.<Partner major version>.<Partner minor version>.<Partner patch version>.<Partner build version>.<Adapter build version>` where `.<Partner build version>` is optional.
-    @objc static let adapterVersion = "4.6.3.0.0"
+    @objc public static let adapterVersion = "4.6.3.0.0"
 
     /// The partner's unique identifier.
-    @objc static let partnerID = "hyprmx"
+    @objc public static let partnerID = "hyprmx"
 
     /// The human-friendly partner name.
-    @objc static let partnerDisplayName = "HyprMX"
+    @objc public static let partnerDisplayName = "HyprMX"
 
     /// Flag that can optionally be set to change the log level of the HyprMX SDK.
     @objc public static var logLevel: HYPRLogLevel = HYPRLogLevelError {
