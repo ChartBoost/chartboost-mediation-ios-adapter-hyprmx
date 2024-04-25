@@ -5,6 +5,7 @@
 
 import Foundation
 import HyprMX
+import os.log
 
 /// A list of externally configurable properties pertaining to the partner SDK that can be retrieved and set by publishers.
 @objc public class HyprMXAdapterConfiguration: NSObject {
@@ -28,8 +29,10 @@ import HyprMX
     /// Flag that can optionally be set to change the log level of the HyprMX SDK.
     @objc public static var logLevel: HYPRLogLevel = HYPRLogLevelError {
         didSet {
-            HyprMX.setLogLevel(newValue)
-            os_log(.debug, log: log, "HyprMX SDK log level set to %{public}s", "\(newValue)")
+            HyprMX.setLogLevel(logLevel)
+            os_log(.debug, log: log, "HyprMX SDK log level set to %{public}s", "\(logLevel)")
         }
     }
+
+    private static let log = OSLog(subsystem: "com.chartboost.mediation.adapter.hyprmx", category: "Configuration")
 }
