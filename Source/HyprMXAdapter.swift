@@ -15,8 +15,6 @@ final class HyprMXAdapter: PartnerAdapter {
     private var gdprOptOut: Bool? = nil
     private var ccpaOptOut: Bool? = nil
 
-    private var initializationCompletion: ((Error?) -> Void)?
-
     // MARK: PartnerAdapter
 
     /// The version of the partner SDK.
@@ -55,7 +53,6 @@ final class HyprMXAdapter: PartnerAdapter {
             completion(error)
             return
         }
-        initializationCompletion = completion
 
         let gameID: String
         if let storedGameID = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
@@ -67,13 +64,16 @@ final class HyprMXAdapter: PartnerAdapter {
 
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
-            // consentStatus will be updated by setGDPR & setCCPA after init
-            HyprMX.initialize(withDistributorId: distributorId,
-              userId: gameID,
-              consentStatus: CONSENT_STATUS_UNKNOWN,
-              ageRestrictedUser: true,  // HyprMX has requested that we simply default to "true"
-              initializationDelegate: self)
-            // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
+            HyprMX.initialize(distributorId) { success, error in
+                if success {
+                    self.log(.setUpSucceded)
+                    completion(nil)
+                } else {
+                    let error = error ?? self.error(.initializationFailureUnknown)
+                    self.log(.setUpFailed(error))
+                    completion(error)
+                }
+            }
         }
     }
 
@@ -186,21 +186,6 @@ final class HyprMXAdapter: PartnerAdapter {
             HyprMX.setConsentStatus(consentState)
             log(.privacyUpdated(setting: "HyprConsentStatus", value: consentState.description))
         }
-    }
-}
-
-extension HyprMXAdapter: HyprMXInitializationDelegate {
-    func initializationDidComplete() {
-        log(.setUpSucceded)
-        initializationCompletion?(nil)
-        initializationCompletion = nil
-    }
-
-    func initializationFailed() {
-        let error = error(.initializationFailureUnknown)
-        log(.setUpFailed(error))
-        initializationCompletion?(error)
-        initializationCompletion = nil
     }
 }
 

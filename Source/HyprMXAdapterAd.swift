@@ -23,9 +23,6 @@ class HyprMXAdapterAd: NSObject {
     /// It should be the one provided on `PartnerAdapter.makeAd(request:delegate:)`.
     weak var delegate: PartnerAdDelegate?
 
-    /// The completion for the ongoing load operation.
-    var loadCompletion: ((Result<PartnerEventDetails, Error>) -> Void)?
-
     /// The completion for the ongoing show operation.
     var showCompletion: ((Result<PartnerEventDetails, Error>) -> Void)?
 
