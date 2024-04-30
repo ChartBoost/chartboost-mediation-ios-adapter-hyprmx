@@ -31,7 +31,7 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerAd {
                         self.log(.loadSucceeded)
                         completion(.success([:]))
                     } else {
-                        let loadError = self.error(.loadFailureNoFill)
+                        let loadError = self.error(.loadFailureUnknown)
                         self.log(.loadFailed(loadError))
                         completion(.failure(loadError))
                     }
