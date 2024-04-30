@@ -120,7 +120,7 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Indicates if the user is subject to COPPA or not.
     /// - parameter isChildDirected: `true` if the user is subject to COPPA, `false` otherwise.
     func setCOPPA(isChildDirected: Bool) {
-        // HyprMX has requested that we simply default to "true" at init.
+        HyprMX.setAgeRestrictedUser(isChildDirected)
     }
 
     /// Creates a new ad object in charge of communicating with a single partner SDK ad instance.
