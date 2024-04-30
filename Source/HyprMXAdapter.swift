@@ -9,7 +9,6 @@ import HyprMX
 final class HyprMXAdapter: PartnerAdapter {
 
     private let DISTRIBUTOR_ID_KEY = "distributor_id"
-    private let GAMEID_STORAGE_KEY = "com.chartboost.adapter.hyprmx.game_id"
     // We track "has opted out" instead of "has opted in" because it makes the
     // three-valued (true, false, nil) truth table easier to read
     private var gdprOptOut: Bool? = nil
@@ -52,14 +51,6 @@ final class HyprMXAdapter: PartnerAdapter {
             log(.setUpFailed(error))
             completion(error)
             return
-        }
-
-        let gameID: String
-        if let storedGameID = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
-            gameID = storedGameID
-        } else {
-            gameID = ProcessInfo.processInfo.globallyUniqueString
-            UserDefaults.standard.set(gameID, forKey: GAMEID_STORAGE_KEY)
         }
 
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
