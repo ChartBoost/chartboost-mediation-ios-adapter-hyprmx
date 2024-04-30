@@ -96,6 +96,10 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter consents: The new consents value, including both modified and unmodified consents.
     /// - parameter modifiedKeys: A set containing all the keys that changed.
     func setConsents(_ consents: [ConsentKey: ConsentValue], modifiedKeys: Set<ConsentKey>) {
+        // Ignore if the consent status has been directly set by publisher via the configuration class.
+        guard !HyprMXAdapterConfiguration.isConsentStatusOverriden else {
+            return
+        }
         guard modifiedKeys.contains(partnerID)
                 || modifiedKeys.contains(ConsentKeys.gdprConsentGiven)
                 || modifiedKeys.contains(ConsentKeys.ccpaOptIn)

@@ -35,4 +35,18 @@ import os.log
     }
 
     private static let log = OSLog(subsystem: "com.chartboost.mediation.adapter.hyprmx", category: "Configuration")
+
+    /// Use to manually set the consent status on the HyprMX SDK.
+    /// This is generally unnecessary as the Mediation SDK will set the consent status automatically based on the latest consent info.
+    @objc public static func setConsentStatusOverride(_ status: HyprConsentStatus) {
+        // HyprMX only supports interaction from the Main Thread
+        DispatchQueue.main.async { [self] in
+            isConsentStatusOverriden = true
+            HyprMX.setConsentStatus(status)
+            os_log(.info, log: log, "HyprMX SDK consent status override set to %{public}s", "\(status)")
+        }
+    }
+
+    /// Internal flag that indicates if the consent status has been overriden by the publisher.
+    static private(set) var isConsentStatusOverriden = false
 }
