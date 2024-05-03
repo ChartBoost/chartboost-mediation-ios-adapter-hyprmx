@@ -3,12 +3,12 @@
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
 
+import ChartboostMediationSDK
 import Foundation
 import HyprMX
-import os.log
 
 /// A list of externally configurable properties pertaining to the partner SDK that can be retrieved and set by publishers.
-@objc public class HyprMXAdapterConfiguration: NSObject {
+@objc public class HyprMXAdapterConfiguration: NSObject, PartnerAdapterConfiguration {
 
     /// The version of the partner SDK.
     @objc public static var partnerSDKVersion: String {
@@ -30,11 +30,9 @@ import os.log
     @objc public static var logLevel: HYPRLogLevel = HYPRLogLevelError {
         didSet {
             HyprMX.setLogLevel(logLevel)
-            os_log(.debug, log: log, "HyprMX SDK log level set to %{public}s", "\(logLevel)")
+            log("Log level set to \(logLevel)")
         }
     }
-
-    private static let log = OSLog(subsystem: "com.chartboost.mediation.adapter.hyprmx", category: "Configuration")
 
     /// Use to manually set the consent status on the HyprMX SDK.
     /// This is generally unnecessary as the Mediation SDK will set the consent status automatically based on the latest consent info.
@@ -43,7 +41,7 @@ import os.log
         DispatchQueue.main.async { [self] in
             isConsentStatusOverriden = true
             HyprMX.setConsentStatus(status)
-            os_log(.info, log: log, "HyprMX SDK consent status override set to %{public}s", "\(status)")
+            log("Consent status override set to \(status)")
         }
     }
 

@@ -14,27 +14,9 @@ final class HyprMXAdapter: PartnerAdapter {
 
     // MARK: PartnerAdapter
 
-    /// The version of the partner SDK.
-    var partnerSDKVersion: String {
-        HyprMXAdapterConfiguration.partnerSDKVersion
-    }
-
-    /// The version of the adapter.
-    /// It should have either 5 or 6 digits separated by periods, where the first digit is Chartboost Mediation SDK's major version, the last digit is the adapter's build version, and intermediate digits are the partner SDK's version.
-    /// Format: `<Chartboost Mediation major version>.<Partner major version>.<Partner minor version>.<Partner patch version>.<Partner build version>.<Adapter build version>` where `.<Partner build version>` is optional.
-    var adapterVersion: String {
-        HyprMXAdapterConfiguration.adapterVersion
-    }
-
-    /// The partner's unique identifier.
-    var partnerID: String {
-        HyprMXAdapterConfiguration.partnerID
-    }
-
-    /// The human-friendly partner name.
-    var partnerDisplayName: String {
-        HyprMXAdapterConfiguration.partnerDisplayName
-    }
+    /// The adapter configuration type that contains adapter and partner info.
+    /// It may also be used to expose custom partner SDK options to the publisher.
+    var configuration: PartnerAdapterConfiguration.Type { HyprMXAdapterConfiguration.self }
 
     /// Ad storage managed by Chartboost Mediation SDK.
     let storage: PartnerAdapterStorage
@@ -100,7 +82,7 @@ final class HyprMXAdapter: PartnerAdapter {
         guard !HyprMXAdapterConfiguration.isConsentStatusOverriden else {
             return
         }
-        guard modifiedKeys.contains(partnerID)
+        guard modifiedKeys.contains(configuration.partnerID)
                 || modifiedKeys.contains(ConsentKeys.gdprConsentGiven)
                 || modifiedKeys.contains(ConsentKeys.ccpaOptIn)
         else {
@@ -126,7 +108,7 @@ final class HyprMXAdapter: PartnerAdapter {
     private func consentStatus(from consents: [ConsentKey: ConsentValue]) -> HyprConsentStatus {
         // Determine GDPR status
         let gdprOptOut: Bool?
-        let consent = consents[partnerID] ?? consents[ConsentKeys.gdprConsentGiven]
+        let consent = consents[configuration.partnerID] ?? consents[ConsentKeys.gdprConsentGiven]
         switch consent {
         case ConsentValues.granted:
             gdprOptOut = false
