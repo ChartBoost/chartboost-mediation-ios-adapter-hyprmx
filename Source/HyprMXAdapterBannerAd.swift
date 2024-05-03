@@ -21,7 +21,7 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerBannerAd {
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.loadStarted)
         guard let requestedSize = request.bannerSize,
-              let loadedSize = fixedBannerSize(for: requestedSize) else {
+              let loadedSize = BannerSize.largestStandardFixedSizeThatFits(in: requestedSize)?.size else {
             let loadError = error(.loadFailureInvalidBannerSize)
             log(.loadFailed(loadError))
             completion(.failure(loadError))
@@ -74,21 +74,5 @@ extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
     // Called when a banner click will open another application
     func adWillLeaveApplication(_ bannerView: HyprMXBannerView) {
         log(.delegateCallIgnored)
-    }
-}
-
-extension HyprMXAdapterBannerAd {
-    private func fixedBannerSize(for requestedSize: BannerSize) -> CGSize? {
-        let sizes = [IABLeaderboardAdSize, IABMediumAdSize, IABStandardAdSize]
-        // Find the largest size that can fit in the requested size.
-        for size in sizes {
-            // If height is 0, the pub has requested an ad of any height, so only the width matters.
-            if requestedSize.size.width >= size.width &&
-                (size.height == 0 || requestedSize.size.height >= size.height) {
-                return size
-            }
-        }
-        // The requested size cannot fit any fixed size banners.
-        return nil
     }
 }
