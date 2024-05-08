@@ -21,13 +21,28 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
             completion(.failure(loadError))
             return
         }
-        loadCompletion = completion
 
         // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
         let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: size)
         inlineView = ad
         ad.placementDelegate = self
-        ad.loadAd()
+        ad.loadAd { success in
+            if success {
+                self.log(.loadSucceeded)
+
+                var partnerDetails: [String: String] = [:]
+                if let loadedSize = self.fixedBannerSize(for: self.request.size ?? IABStandardAdSize) {
+                    partnerDetails["bannerWidth"] = "\(loadedSize.width)"
+                    partnerDetails["bannerHeight"] = "\(loadedSize.height)"
+                    partnerDetails["bannerType"] = "0" // Fixed banner
+                }
+                completion(.success(partnerDetails))
+            } else {
+                let loadError = self.error(.loadFailureUnknown)
+                self.log(.loadFailed(loadError))
+                completion(.failure(loadError))
+            }
+        }
     }
 
     /// Shows a loaded ad.
@@ -43,27 +58,6 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerAd {
 /// These delegate method  descriptions are taken from HyprMX's documentation https://documentation.hyprmx.com/ios-hyprmx-sdk/banner-ads
 /// Note the ambiguity between the name 'adDidOpen' and the description saying "... WILL open a full-screen modal"
 extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
-    // Called in response to loadAd when an ad was loaded
-    func adDidLoad(_ bannerView: HyprMXBannerView) {
-        log(.loadSucceeded)
-
-        var partnerDetails: [String: String] = [:]
-        if let loadedSize = fixedBannerSize(for: request.size ?? IABStandardAdSize) {
-            partnerDetails["bannerWidth"] = "\(loadedSize.width)"
-            partnerDetails["bannerHeight"] = "\(loadedSize.height)"
-            partnerDetails["bannerType"] = "0" // Fixed banner
-        }
-        loadCompletion?(.success(partnerDetails)) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
-    // Called in response to loadAd when there was an error loading an ad
-    func adFailed(toLoad bannerView: HyprMXBannerView, error: Error) {
-        log(.loadFailed(error))
-        loadCompletion?(.failure(error)) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
     // Called when a banner click will open a full-screen modal
     func adDidOpen(_ bannerView: HyprMXBannerView) {
         log(.delegateCallIgnored)
