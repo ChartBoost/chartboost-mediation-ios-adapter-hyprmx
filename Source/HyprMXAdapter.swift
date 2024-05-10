@@ -9,8 +9,6 @@ import HyprMX
 final class HyprMXAdapter: PartnerAdapter {
 
     private let DISTRIBUTOR_ID_KEY = "distributor_id"
-    private let GAMEID_STORAGE_KEY = "com.chartboost.adapter.hyprmx.game_id"
-    private var initializationCompletion: ((Result<PartnerDetails, Error>) -> Void)?
 
     // MARK: PartnerAdapter
 
@@ -34,34 +32,29 @@ final class HyprMXAdapter: PartnerAdapter {
     /// - parameter completion: Closure to be performed by the adapter when it's done setting up. It should include an error indicating the cause for failure or `nil` if the operation finished successfully.
     func setUp(with configuration: PartnerConfiguration, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.setUpStarted)
-        guard let distributorId = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
+        guard let distributorID = configuration.credentials[DISTRIBUTOR_ID_KEY] as? String else {
             let error = error(.initializationFailureInvalidCredentials, description: "The distributor id was invalid")
             log(.setUpFailed(error))
             completion(.failure(error))
             return
         }
-        initializationCompletion = completion
 
-        let gameID: String
-        if let storedGameID = UserDefaults.standard.object(forKey: GAMEID_STORAGE_KEY) as? String {
-            gameID = storedGameID
-        } else {
-            gameID = ProcessInfo.processInfo.globallyUniqueString
-            UserDefaults.standard.set(gameID, forKey: GAMEID_STORAGE_KEY)
-        }
+        // Apply initial consents
+        setConsents(configuration.consents, modifiedKeys: Set(configuration.consents.keys))
+        setIsUserUnderage(configuration.isUserUnderage)
+
         // HyprMX.initialize() uses WKWebView, which must only be used on the main thread
         DispatchQueue.main.async { [self] in
-            HyprMX.setLogLevel(HYPRLogLevelDebug)
-            
-            // consentStatus will be updated by setConsents() after init
-            HyprMX.initialize(
-                withDistributorId: distributorId,
-                userId: gameID,
-                consentStatus: consentStatus(from: configuration.consents),
-                ageRestrictedUser: configuration.isUserUnderage,
-                initializationDelegate: self
-            )
-            // For information about these init options, see https://documentation.hyprmx.com/ios-hyprmx-sdk/#initialization-api
+            HyprMX.initialize(distributorID) { success, error in
+                if success {
+                    self.log(.setUpSucceded)
+                    completion(.success([:]))
+                } else {
+                    let error = error ?? self.error(.initializationFailureUnknown)
+                    self.log(.setUpFailed(error))
+                    completion(.failure(error))
+                }
+            }
         }
     }
 
@@ -99,7 +92,11 @@ final class HyprMXAdapter: PartnerAdapter {
     /// Indicates that the user is underage signal has changed.
     /// - parameter isUserUnderage: `true` if the user is underage as determined by the publisher, `false` otherwise.
     func setIsUserUnderage(_ isUserUnderage: Bool) {
-        // HyprMX has requested that we simply default to "true" at init.
+        // HyprMX only supports interaction from the Main Thread
+        DispatchQueue.main.async { [self] in
+            HyprMX.setAgeRestrictedUser(isUserUnderage)
+            log(.privacyUpdated(setting: "setAgeRestrictedUser", value: isUserUnderage))
+        }
     }
 
     /// HyprMX distills all privacy preferences into a single HyprConsentStatus value, so the we have to look at both the
@@ -179,21 +176,6 @@ final class HyprMXAdapter: PartnerAdapter {
         default:
             throw error(.loadFailureUnsupportedAdFormat)
         }
-    }
-}
-
-extension HyprMXAdapter: HyprMXInitializationDelegate {
-    func initializationDidComplete() {
-        log(.setUpSucceded)
-        initializationCompletion?(.success([:]))
-        initializationCompletion = nil
-    }
-
-    func initializationFailed() {
-        let error = error(.initializationFailureUnknown)
-        log(.setUpFailed(error))
-        initializationCompletion?(.failure(error))
-        initializationCompletion = nil
     }
 }
 

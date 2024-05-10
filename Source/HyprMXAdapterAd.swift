@@ -26,9 +26,6 @@ class HyprMXAdapterAd: NSObject {
     /// or ``PartnerAdapter/makeFullscreenAd(request:delegate:)``.
     weak var delegate: PartnerAdDelegate?
 
-    /// The completion for the ongoing load operation.
-    var loadCompletion: ((Result<PartnerDetails, Error>) -> Void)?
-
     /// The completion for the ongoing show operation.
     var showCompletion: ((Result<PartnerDetails, Error>) -> Void)?
 

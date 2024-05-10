@@ -18,7 +18,6 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerFullscreenAd {
     /// - parameter completion: Closure to be performed once the ad has been loaded.
     func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerDetails, Error>) -> Void) {
         log(.loadStarted)
-        loadCompletion = completion
 
         // HyprMX only supports interaction from the Main Thread. Unlike banner ads, Chartboost Mediation SDK
         // does not load interstitials on the main thread so we need to wrap this ourselves.
@@ -26,13 +25,22 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerFullscreenAd {
             // Construct a partner ad to be persisted for subsequent ad operations.
             if let ad = HyprMX.getPlacement(self.request.partnerPlacement) {
                 self.ad = ad
-                ad.placementDelegate = self
-                ad.loadAd()
+                ad.expiredDelegate = self
+                ad.loadAd { [weak self] success in
+                    guard let self else { return }
+                    if success {
+                        self.log(.loadSucceeded)
+                        completion(.success([:]))
+                    } else {
+                        let loadError = self.error(.loadFailureUnknown)
+                        self.log(.loadFailed(loadError))
+                        completion(.failure(loadError))
+                    }
+                }
             } else {
                 let loadError = error(.loadFailureUnknown)
                 log(.loadFailed(loadError))
                 completion(.failure(loadError))
-                loadCompletion = nil
             }
         }
     }
@@ -45,7 +53,7 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerFullscreenAd {
         log(.showStarted)
         // Chartboost Mediation SDK already calls show() on the main thread so we don't need to wrap this
         guard let ad = ad,
-              ad.isAdAvailable() else {
+              ad.isAdAvailable else {
             let error = error(.showFailureAdNotReady)
             log(.showFailed(error))
             completion(.failure(error))
@@ -53,44 +61,31 @@ final class HyprMXAdapterInterstitialAd: HyprMXAdapterAd, PartnerFullscreenAd {
         }
         showCompletion = completion
 
-        ad.showAd(from: viewController)
+        ad.showAd(from: viewController, delegate: self)
     }
 }
 
-extension HyprMXAdapterInterstitialAd: HyprMXPlacementDelegate {
-    // Called in response to loadAd when there is an ad to show.
-    func adAvailable(for placement: HyprMXPlacement) {
-        log(.loadSucceeded)
-        loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
-    // Called in response to loadAd when there's no ad to show.
-    func adNotAvailable(for placement: HyprMXPlacement) {
-        let loadError = error(.loadFailureNoFill)
-        log(.loadFailed(loadError))
-        loadCompletion?(.failure(loadError)) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
-    // Called when ad loaded is no longer available for this placement.
-    func adExpired(for placement: HyprMXPlacement) {
-        log(.didExpire)
-        delegate?.didExpire(self, details: [:]) ?? log(.delegateUnavailable)
-        showCompletion = nil
-    }
-
+extension HyprMXAdapterInterstitialAd: HyprMXPlacementShowDelegate {
     // Called upon conclusion of any ad presentation attempt
-    func adDidClose(for placement: HyprMXPlacement, didFinishAd finished: Bool) {
+    func adDidClose(placement: HyprMXPlacement, finished: Bool) {
         log(.didDismiss(error: nil))
         let details = ["finished": String(finished)]
         delegate?.didDismiss(self, details: details, error: nil)  ?? log(.delegateUnavailable)
     }
 
     // Called immediately before attempting to present an ad.
-    func adWillStart(for placement: HyprMXPlacement) {
+    func adWillStart(placement: HyprMXPlacement) {
         log(.showSucceeded)
         showCompletion?(.success([:])) ?? log(.showResultIgnored)
+        showCompletion = nil
+    }
+}
+
+extension HyprMXAdapterInterstitialAd: HyprMXPlacementExpiredDelegate {
+    // Called when ad loaded is no longer available for this placement.
+    func adExpired(placement: HyprMXPlacement) {
+        log(.didExpire)
+        delegate?.didExpire(self, details: [:]) ?? log(.delegateUnavailable)
         showCompletion = nil
     }
 

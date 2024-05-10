@@ -28,33 +28,28 @@ final class HyprMXAdapterBannerAd: HyprMXAdapterAd, PartnerBannerAd {
             return
         }
         size = PartnerBannerSize(size: loadedSize, type: .fixed)
-        loadCompletion = completion
 
         // Chartboost Mediation SDK already calls banner load() on the main thread so we don't need to wrap this
-        let ad = HyprMXBannerView.init(placementName: request.partnerPlacement, adSize: loadedSize)
+        let ad = HyprMXBannerView(placementName: request.partnerPlacement, adSize: loadedSize)
         view = ad
         ad.placementDelegate = self
-        ad.loadAd()
+        ad.loadAd { [weak self] success in
+            guard let self else { return }
+            if success {
+                self.log(.loadSucceeded)
+                completion(.success([:]))
+            } else {
+                let loadError = self.error(.loadFailureUnknown)
+                self.log(.loadFailed(loadError))
+                completion(.failure(loadError))
+            }
+        }
     }
 }
 
 /// These delegate method  descriptions are taken from HyprMX's documentation https://documentation.hyprmx.com/ios-hyprmx-sdk/banner-ads
 /// Note the ambiguity between the name 'adDidOpen' and the description saying "... WILL open a full-screen modal"
 extension HyprMXAdapterBannerAd: HyprMXBannerDelegate {
-    // Called in response to loadAd when an ad was loaded
-    func adDidLoad(_ bannerView: HyprMXBannerView) {
-        log(.loadSucceeded)
-        loadCompletion?(.success([:])) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
-    // Called in response to loadAd when there was an error loading an ad
-    func adFailed(toLoad bannerView: HyprMXBannerView, error: Error) {
-        log(.loadFailed(error))
-        loadCompletion?(.failure(error)) ?? log(.loadResultIgnored)
-        loadCompletion = nil
-    }
-
     // Called when a banner click will open a full-screen modal
     func adDidOpen(_ bannerView: HyprMXBannerView) {
         log(.delegateCallIgnored)
