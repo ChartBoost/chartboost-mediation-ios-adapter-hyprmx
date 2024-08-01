@@ -8,15 +8,14 @@ import Foundation
 import HyprMX
 
 /// The Chartboost Mediation HyprMX adapter rewarded ad.
-final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerAd {
-
+final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerFullscreenAd {
     /// The HyprMXSDK ad instance.
     var ad: HyprMXPlacement?
 
     /// Loads an ad.
     /// - parameter viewController: The view controller on which the ad will be presented on. Needed on load for some banners.
     /// - parameter completion: Closure to be performed once the ad has been loaded.
-    func load(with viewController: UIViewController?, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
+    func load(with viewController: UIViewController?, completion: @escaping (Error?) -> Void) {
         log(.loadStarted)
 
         // HyprMX only supports interaction from the Main Thread. Unlike banner ads, Chartboost Mediation SDK
@@ -26,36 +25,37 @@ final class HyprMXAdapterRewardedAd: HyprMXAdapterAd, PartnerAd {
             if let ad = HyprMX.getPlacement(self.request.partnerPlacement) {
                 self.ad = ad
                 ad.expiredDelegate = self
-                ad.loadAd { success in
+                ad.loadAd { [weak self] success in
+                    guard let self else { return }
                     if success {
                         self.log(.loadSucceeded)
-                        completion(.success([:]))
+                        completion(nil)
                     } else {
                         let loadError = self.error(.loadFailureUnknown)
                         self.log(.loadFailed(loadError))
-                        completion(.failure(loadError))
+                        completion(loadError)
                     }
                 }
             } else {
                 let loadError = error(.loadFailureUnknown)
                 log(.loadFailed(loadError))
-                completion(.failure(loadError))
+                completion(loadError)
             }
         }
     }
 
     /// Shows a loaded ad.
-    /// It will never get called for banner ads. You may leave the implementation blank for that ad format.
+    /// Chartboost Mediation SDK will always call this method from the main thread.
     /// - parameter viewController: The view controller on which the ad will be presented on.
     /// - parameter completion: Closure to be performed once the ad has been shown.
-    func show(with viewController: UIViewController, completion: @escaping (Result<PartnerEventDetails, Error>) -> Void) {
+    func show(with viewController: UIViewController, completion: @escaping (Error?) -> Void) {
         log(.showStarted)
         // Chartboost Mediation SDK already calls show() on the main thread so we don't need to wrap this
-        guard let ad = ad,
+        guard let ad,
               ad.isAdAvailable else {
             let error = error(.showFailureAdNotReady)
             log(.showFailed(error))
-            completion(.failure(error))
+            completion(error)
             return
         }
         showCompletion = completion
@@ -68,14 +68,14 @@ extension HyprMXAdapterRewardedAd: HyprMXPlacementShowDelegate {
     // Called upon conclusion of any ad presentation attempt
     func adDidClose(placement: HyprMXPlacement, finished: Bool) {
         log(.didDismiss(error: nil))
-        let details = ["finished": String(finished)]
-        delegate?.didDismiss(self, details: details, error: nil)  ?? log(.delegateUnavailable)
+        details["finished"] = String(finished)
+        delegate?.didDismiss(self, error: nil) ?? log(.delegateUnavailable)
     }
 
     // Called immediately before attempting to present an ad.
     func adWillStart(placement: HyprMXPlacement) {
         log(.showSucceeded)
-        showCompletion?(.success([:])) ?? log(.showResultIgnored)
+        showCompletion?(nil) ?? log(.showResultIgnored)
         showCompletion = nil
     }
 
@@ -86,13 +86,13 @@ extension HyprMXAdapterRewardedAd: HyprMXPlacementShowDelegate {
         // Attempt to add "rewardName" key. Nothing will happen if rewardName is nil.
         details["rewardName"] = rewardName
         details["rewardValue"] = String(rewardValue)
-        delegate?.didReward(self, details: details) ?? log(.delegateUnavailable)
+        delegate?.didReward(self) ?? log(.delegateUnavailable)
     }
 
     // Called when an error occurs during ad presentation.
     func adDisplay(error: NSError, placement: HyprMXPlacement) {
         log(.showFailed(error))
-        showCompletion?(.failure(error)) ?? log(.showResultIgnored)
+        showCompletion?(error) ?? log(.showResultIgnored)
         showCompletion = nil
     }
 }
@@ -101,7 +101,7 @@ extension HyprMXAdapterRewardedAd: HyprMXPlacementExpiredDelegate {
     // Called when ad loaded is no longer available for this placement.
     func adExpired(placement: HyprMXPlacement) {
         log(.didExpire)
-        delegate?.didExpire(self, details: [:]) ?? log(.delegateUnavailable)
+        delegate?.didExpire(self) ?? log(.delegateUnavailable)
         showCompletion = nil
     }
 }
